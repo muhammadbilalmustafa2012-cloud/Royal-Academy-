@@ -1,0 +1,552 @@
+import express from "express";
+import path from "path";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import jwt from "jsonwebtoken";
+import { createServer as createViteServer } from "vite";
+import { GoogleGenAI } from "@google/genai";
+import { db } from "./server/db.js";
+import { syncAdmissionToGoogleSheets } from "./server/googleSheets.js";
+
+const JWT_SECRET = process.env.JWT_SECRET || "royal_academy_secret_key_2026_faisalabad";
+const PORT = Number(process.env.PORT) || 3000;
+const PRIMARY_DOMAIN = "https://www.royalacademy.pk";
+
+async function startServer() {
+  const app = express();
+
+  // Security Middlewares
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Allow inline styles and external images
+      crossOriginEmbedderPolicy: false
+    })
+  );
+  app.use(cors({
+    origin: [PRIMARY_DOMAIN, "https://royal-academy-gilt.vercel.app"],
+    credentials: true
+  }));
+  app.use(express.json());
+
+  // Input Sanitization helper to protect against XSS and injection
+  const sanitizeInput = (val: any): any => {
+    if (typeof val === "string") {
+      return val.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim();
+    }
+    if (Array.isArray(val)) {
+      return val.map(sanitizeInput);
+    }
+    if (val !== null && typeof val === "object") {
+      const cleaned: any = {};
+      for (const k in val) {
+        cleaned[k] = sanitizeInput(val[k]);
+      }
+      return cleaned;
+    }
+    return val;
+  };
+
+  app.use((req, res, next) => {
+    if (req.body) req.body = sanitizeInput(req.body);
+    if (req.query) req.query = sanitizeInput(req.query);
+    next();
+  });
+
+  // Rate limiter for API routes
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    message: { error: "Too many requests from this IP, please try again later." }
+  });
+  app.use("/api/", limiter);
+
+  // Gemini AI Helper
+  let aiClient: GoogleGenAI | null = null;
+  function getGeminiClient() {
+    if (!aiClient) {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (apiKey) {
+        aiClient = new GoogleGenAI({
+          apiKey,
+          httpOptions: {
+            headers: {
+              "User-Agent": "aistudio-build"
+            }
+          }
+        });
+      }
+    }
+    return aiClient;
+  }
+
+  // --- SEO ROUTE: sitemap.xml ---
+  app.get("/sitemap.xml", (_req, res) => {
+    res.header("Content-Type", "application/xml");
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${PRIMARY_DOMAIN}/</loc>
+    <lastmod>${new Date().toISOString().split("T")[0]}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/about</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/courses</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/admissions</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/teachers</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/gallery</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/notices</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/results</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${PRIMARY_DOMAIN}/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+    res.send(sitemap);
+  });
+
+  // --- SEO ROUTE: robots.txt ---
+  app.get("/robots.txt", (_req, res) => {
+    res.header("Content-Type", "text/plain");
+    const robots = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/admin/
+
+Sitemap: ${PRIMARY_DOMAIN}/sitemap.xml`;
+    res.send(robots);
+  });
+
+  // --- API ROUTES ---
+
+  // Health check
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      institute: "Royal Academy",
+      domain: PRIMARY_DOMAIN,
+      location: "Street 14, Farooqabad, Mansoorabad, Faisalabad, Punjab 38000, Pakistan",
+      phone: "+92 329 0247580"
+    });
+  });
+
+  // System Stats
+  app.get("/api/stats", async (_req, res) => {
+    try {
+      const admissions = await db.getAdmissions();
+      const courses = await db.getCourses();
+      const teachers = await db.getTeachers();
+      const messages = await db.getMessages();
+
+      res.json({
+        totalStudents: 850 + admissions.filter((a) => a.status === "Approved").length,
+        totalCourses: courses.length,
+        pendingAdmissions: admissions.filter((a) => a.status === "Pending").length,
+        approvedAdmissions: admissions.filter((a) => a.status === "Approved").length,
+        totalTeachers: teachers.length,
+        unreadMessages: messages.filter((m) => m.status === "Unread").length,
+        totalApplications: admissions.length
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // 1. ADMISSIONS API
+  app.get("/api/admissions", async (req, res) => {
+    try {
+      const { search, class: classFilter, status, startDate, endDate } = req.query;
+      const admissions = await db.getAdmissions({
+        search: search as string,
+        classFilter: classFilter as string,
+        status: status as string,
+        startDate: startDate as string,
+        endDate: endDate as string
+      });
+      res.json(admissions);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admissions/export/csv", async (_req, res) => {
+    try {
+      const list = await db.getAdmissions();
+      const csvData = db.exportAdmissionsCSV(list);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", 'attachment; filename="royal_academy_admissions.csv"');
+      res.send(csvData);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/admissions/status/:query", async (req, res) => {
+    try {
+      const match = await db.getAdmissionById(req.params.query);
+      if (!match) {
+        return res.status(404).json({ error: "No admission application found matching this ID, Phone, or CNIC." });
+      }
+      res.json(match);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admissions", async (req, res) => {
+    try {
+      const { studentName, fatherName, phone, courseName, class: classField } = req.body;
+      const targetCourse = courseName || classField;
+
+      if (!studentName || !phone || !targetCourse) {
+        return res
+          .status(400)
+          .json({ error: "Please fill in all required fields (Student Name, Phone, and Class/Course)." });
+      }
+
+      const newApp = await db.createAdmission({
+        ...req.body,
+        courseName: targetCourse
+      });
+
+      // Trigger Google Sheets sync (non-blocking / handles retry)
+      syncAdmissionToGoogleSheets(newApp).catch((e) => console.error(e));
+
+      res.status(201).json(newApp);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch("/api/admissions/:id", async (req, res) => {
+    try {
+      const updated = await db.updateAdmission(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ error: "Application not found" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/admissions/:id/status", async (req, res) => {
+    try {
+      const updated = await db.updateAdmission(req.params.id, {
+        status: req.body.status,
+        adminNotes: req.body.adminNotes
+      });
+      if (!updated) return res.status(404).json({ error: "Application not found" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/admissions/:id", async (req, res) => {
+    try {
+      const success = await db.deleteAdmission(req.params.id);
+      if (!success) return res.status(404).json({ error: "Application not found" });
+      res.json({ success: true, id: req.params.id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 2. CONTACT MESSAGES API
+  app.get("/api/messages", async (_req, res) => {
+    try {
+      const messages = await db.getMessages();
+      res.json(messages);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const { name, message } = req.body;
+      if (!name || !message) {
+        return res.status(400).json({ error: "Name and message are required." });
+      }
+      const newMsg = await db.createMessage(req.body);
+      res.status(201).json(newMsg);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/messages/:id/status", async (req, res) => {
+    try {
+      const updated = await db.updateMessageStatus(req.params.id, req.body.status);
+      if (!updated) return res.status(404).json({ error: "Message not found" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/messages/:id", async (req, res) => {
+    try {
+      const success = await db.deleteMessage(req.params.id);
+      if (!success) return res.status(404).json({ error: "Message not found" });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 3. COURSES API
+  app.get("/api/courses", async (_req, res) => {
+    try {
+      const courses = await db.getCourses();
+      res.json(courses);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/courses", async (req, res) => {
+    try {
+      const newCourse = await db.createCourse(req.body);
+      res.status(201).json(newCourse);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/courses/:id", async (req, res) => {
+    try {
+      const updated = await db.updateCourse(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ error: "Course not found" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/courses/:id", async (req, res) => {
+    try {
+      await db.deleteCourse(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 4. TEACHERS API
+  app.get("/api/teachers", async (_req, res) => {
+    try {
+      const teachers = await db.getTeachers();
+      res.json(teachers);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/teachers", async (req, res) => {
+    try {
+      const newTeacher = await db.createTeacher(req.body);
+      res.status(201).json(newTeacher);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 5. NOTICES API
+  app.get("/api/notices", async (_req, res) => {
+    try {
+      const notices = await db.getNotices();
+      res.json(notices);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/notices", async (req, res) => {
+    try {
+      const newNotice = await db.createNotice(req.body);
+      res.status(201).json(newNotice);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/notices/:id", async (req, res) => {
+    try {
+      await db.deleteNotice(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 6. BOARD RESULTS API
+  app.get("/api/results", async (req, res) => {
+    try {
+      const query = (req.query.q as string) || "";
+      const results = await db.getResults(query);
+      res.json(results);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/results", async (req, res) => {
+    try {
+      const newResult = await db.createResult(req.body);
+      res.status(201).json(newResult);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 7. ADMIN AUTHENTICATION
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required." });
+      }
+
+      const admin = await db.verifyAdminPassword(email, password);
+      if (!admin) {
+        return res.status(401).json({ error: "Invalid admin email or password." });
+      }
+
+      const token = jwt.sign(
+        { id: admin.id, email: admin.email, role: admin.role },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
+
+      res.json({
+        success: true,
+        user: {
+          id: admin.id,
+          username: admin.username,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+          token
+        }
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/auth/change-password", async (req, res) => {
+    try {
+      const { email, oldPassword, newPassword } = req.body;
+      if (!email || !oldPassword || !newPassword) {
+        return res.status(400).json({ error: "Email, old password, and new password are required." });
+      }
+
+      const success = await db.changeAdminPassword(email, oldPassword, newPassword);
+      if (!success) {
+        return res.status(400).json({ error: "Failed to change password. Please verify your old password." });
+      }
+
+      res.json({ success: true, message: "Password updated successfully." });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 8. GEMINI AI ASSISTANT API
+  app.post("/api/ai/chat", async (req, res) => {
+    try {
+      const { message } = req.body;
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const ai = getGeminiClient();
+      if (!ai) {
+        return res.json({
+          reply:
+            "Welcome to **Royal Academy**!\n\n📍 **Location**: Street 14, Farooqabad, Mansoorabad, Faisalabad, Punjab 38000, Pakistan\n📞 **Helpline**: 03290247580\n🌐 **Official Website**: https://www.royalacademy.pk\n\nWe offer Matric (Science/Arts), F.Sc Pre-Medical, F.Sc Pre-Engineering, ICS, MDCAT/ECAT Entry Test, Spoken English, and IT Computer courses. How may I assist your admission today?"
+        });
+      }
+
+      const systemPrompt = `You are the official Royal Academy AI Admissions & Student Advisory Assistant.
+Official Details for Royal Academy:
+- Institute Name: Royal Academy
+- Primary Domain: https://www.royalacademy.pk
+- Location: Street 14, Farooqabad, Mansoorabad, Faisalabad, Punjab 38000, Pakistan
+- Helpline / Phone: 03290247580
+- WhatsApp: 03290247580
+- Programs offered: Matriculation, F.Sc Pre-Medical, F.Sc Pre-Engineering, ICS, MDCAT & ECAT Entry Test, Spoken English, Computer IT Short Courses.
+- Timings: Morning & Evening batches.
+- Tone: Extremely polite, encouraging, professional, structured, and helpful.
+- Encourage students to fill out the online admission form on https://www.royalacademy.pk or call 03290247580.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUser Question: ${message}` }] }]
+      });
+
+      const reply =
+        response.text ||
+        "Thank you for contacting Royal Academy! Please call 03290247580 or visit our campus at Street 14, Farooqabad, Mansoorabad, Faisalabad for complete admission guidance.";
+      res.json({ reply });
+    } catch (error: any) {
+      console.error("Gemini AI error:", error);
+      res.json({
+        reply:
+          "Thank you for reaching out to **Royal Academy**! For immediate registration details, call us directly at **03290247580** or visit our campus at Street 14, Farooqabad, Mansoorabad, Faisalabad, Punjab 38000, Pakistan."
+      });
+    }
+  });
+
+  // Serve static files or Vite dev middleware
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa"
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[Royal Academy Server] Running on http://0.0.0.0:${PORT}`);
+    console.log(`[Domain] Configured for ${PRIMARY_DOMAIN}`);
+  });
+}
+
+startServer();

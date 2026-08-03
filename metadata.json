@@ -1,0 +1,6 @@
+{
+  "name": "Royal Academy",
+  "description": "Royal Academy Mansoorabad, Faisalabad - Premier educational institute offering Matric, Intermediate, Entry Test, Spoken English, and Computer courses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

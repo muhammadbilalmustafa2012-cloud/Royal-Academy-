@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: royaladmin
+      POSTGRES_PASSWORD: royalacademy2026
+      POSTGRES_DB: royal_academy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U royaladmin -d royal_academy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://royaladmin:royalacademy2026@postgres:5432/royal_academy?schema=public
+      JWT_SECRET: ${JWT_SECRET:-royal_academy_secure_jwt_secret_2026_faisalabad}
+      PRIMARY_DOMAIN: https://www.royalacademy.pk
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_SHEETS_WEBHOOK_URL: ${GOOGLE_SHEETS_WEBHOOK_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

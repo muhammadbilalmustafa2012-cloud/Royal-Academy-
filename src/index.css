@@ -1,0 +1,472 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   FONTS
+───────────────────────────────────────────── */
+@layer base {
+  body {
+    font-family: 'Hanken Grotesk', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif-headline {
+    font-family: 'Source Serif 4', Georgia, serif;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   SCROLL PROGRESS BAR
+   Thin gold bar at very top of viewport showing
+   how far the user has scrolled
+───────────────────────────────────────────── */
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #B8860B 0%, #FFD700 50%, #B8860B 100%);
+  z-index: 9999;
+  transition: width 0.1s linear;
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 8px rgba(184, 134, 11, 0.6);
+}
+
+/* ─────────────────────────────────────────────
+   GLASSMORPHISM UTILITIES
+───────────────────────────────────────────── */
+.glass-overlay {
+  background: rgba(0, 35, 73, 0.90);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-card {
+  background: rgba(0, 26, 56, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(184, 134, 11, 0.25);
+}
+
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* ─────────────────────────────────────────────
+   CUSTOM SCROLLBAR
+───────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #001A38;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B8860B;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #966D09;
+}
+
+/* ─────────────────────────────────────────────
+   KEYFRAME ANIMATIONS
+───────────────────────────────────────────── */
+
+/* Float bob — used for decorative shapes in hero */
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-18px) rotate(2deg); }
+  66%       { transform: translateY(-8px) rotate(-1deg); }
+}
+
+/* Gentle pulse for the "open" badge */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.75; transform: scale(1.05); }
+}
+
+/* Ripple on button click */
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+/* Bounce for social icons hover */
+@keyframes socialBounce {
+  0%, 100% { transform: translateY(0); }
+  40%       { transform: translateY(-6px); }
+  70%       { transform: translateY(-2px); }
+}
+
+/* Typing dots animation for AI chat */
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Shimmer skeleton loader */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Slide-down mobile menu */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Page fade-in on tab change */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero stagger items */
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Underline expand for nav links */
+@keyframes underlineExpand {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* CountUp number highlight */
+@keyframes countHighlight {
+  0%   { color: #FFD700; }
+  100% { color: #B8860B; }
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATION UTILITY CLASSES
+───────────────────────────────────────────── */
+
+/* Float bob for hero shapes */
+.animate-float-bob {
+  animation: floatBob 6s ease-in-out infinite;
+}
+
+.animate-float-bob-slow {
+  animation: floatBob 9s ease-in-out infinite;
+  animation-delay: -3s;
+}
+
+/* Soft pulse (status dot) */
+.animate-soft-pulse {
+  animation: softPulse 2.5s ease-in-out infinite;
+}
+
+/* Social icon bounce on hover */
+.social-icon:hover {
+  animation: socialBounce 0.4s ease;
+}
+
+/* Mobile menu slide down */
+.animate-slide-down {
+  animation: slideDown 0.25s ease forwards;
+}
+
+/* Page tab transition */
+.animate-page-in {
+  animation: pageFadeIn 0.4s ease forwards;
+}
+
+/* Hero section stagger delays */
+.hero-item-1 { animation: heroFadeUp 0.7s ease 0.1s both; }
+.hero-item-2 { animation: heroFadeUp 0.7s ease 0.28s both; }
+.hero-item-3 { animation: heroFadeUp 0.7s ease 0.46s both; }
+.hero-item-4 { animation: heroFadeUp 0.7s ease 0.64s both; }
+.hero-item-5 { animation: heroFadeUp 0.7s ease 0.82s both; }
+
+/* AI chat typing dots */
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ffbe6;
+  animation: typingDot 1.2s ease infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Shimmer loading skeleton */
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────
+   BUTTON RIPPLE EFFECT
+───────────────────────────────────────────── */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transform: scale(0) translate(-50%, -50%);
+  transform-origin: top left;
+}
+.btn-ripple:active::after {
+  animation: ripple 0.5s linear;
+}
+
+/* ─────────────────────────────────────────────
+   COURSE CARD HOVER
+───────────────────────────────────────────── */
+.course-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.course-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(0, 35, 73, 0.12);
+}
+
+/* ─────────────────────────────────────────────
+   NAV ANIMATED UNDERLINE
+───────────────────────────────────────────── */
+.nav-link-underline {
+  position: relative;
+}
+.nav-link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  height: 2px;
+  width: 0;
+  background: #B8860B;
+  transition: width 0.3s ease;
+}
+.nav-link-underline:hover::after,
+.nav-link-underline.active::after {
+  width: 100%;
+}
+
+/* ─────────────────────────────────────────────
+   STICKY NAVBAR BLUR TRANSITION
+───────────────────────────────────────────── */
+.navbar-scrolled {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(0, 35, 73, 0.95) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ─────────────────────────────────────────────
+   FAQ SMOOTH ACCORDION
+───────────────────────────────────────────── */
+.faq-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  opacity: 0;
+}
+.faq-body.open {
+  max-height: 400px;
+  opacity: 1;
+}
+
+/* ─────────────────────────────────────────────
+   IMAGE ZOOM ON HOVER
+───────────────────────────────────────────── */
+.img-zoom-container {
+  overflow: hidden;
+}
+.img-zoom-container img {
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.img-zoom-container:hover img {
+  transform: scale(1.08);
+}
+
+/* ─────────────────────────────────────────────
+   SCROLL TO TOP BUTTON
+───────────────────────────────────────────── */
+.scroll-to-top-btn {
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.scroll-to-top-btn.hidden-btn {
+  opacity: 0;
+  transform: translateY(16px) scale(0.8);
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────
+   PERFORMANCE: GPU COMPOSITING HINTS
+───────────────────────────────────────────── */
+.will-animate {
+  will-change: opacity, transform;
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATION DELAY UTILITIES
+───────────────────────────────────────────── */
+.delay-75  { transition-delay: 75ms !important; }
+.delay-100 { transition-delay: 100ms !important; }
+.delay-150 { transition-delay: 150ms !important; }
+.delay-200 { transition-delay: 200ms !important; }
+.delay-300 { transition-delay: 300ms !important; }
+.delay-400 { transition-delay: 400ms !important; }
+.delay-500 { transition-delay: 500ms !important; }
+.delay-600 { transition-delay: 600ms !important; }
+
+/* ─────────────────────────────────────────────
+   AI CHAT WIDGET — TYPING INDICATOR DOTS
+───────────────────────────────────────────── */
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40%           { transform: translateY(-6px); opacity: 1; }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #6200ee;
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ─────────────────────────────────────────────
+   AI CHAT WIDGET — OPEN ANIMATION
+───────────────────────────────────────────── */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* ─────────────────────────────────────────────
+   HERO SECTION STAGGERED ENTRANCE ANIMATIONS
+───────────────────────────────────────────── */
+.hero-item-1 { animation: pageFadeIn 0.5s ease 0.1s both; }
+.hero-item-2 { animation: pageFadeIn 0.6s ease 0.25s both; }
+.hero-item-3 { animation: pageFadeIn 0.6s ease 0.4s both; }
+.hero-item-4 { animation: pageFadeIn 0.6s ease 0.55s both; }
+.hero-item-5 { animation: pageFadeIn 0.6s ease 0.7s both; }
+
+/* ─────────────────────────────────────────────
+   COURSE CARD HOVER LIFT
+───────────────────────────────────────────── */
+.course-card {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease,
+              border-color 0.2s ease;
+}
+.course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 35, 73, 0.15);
+}
+
+/* ─────────────────────────────────────────────
+   SOCIAL ICON HOVER BOUNCE
+───────────────────────────────────────────── */
+.social-icon {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.2s ease, color 0.2s ease;
+}
+.social-icon:hover {
+  transform: translateY(-3px) scale(1.15);
+}
+
+/* ─────────────────────────────────────────────
+   SOFT PULSE (for status dot)
+───────────────────────────────────────────── */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(1.3); }
+}
+.animate-soft-pulse {
+  animation: softPulse 2s infinite ease-in-out;
+}
+
+/* ─────────────────────────────────────────────
+   FLOATING BOB ANIMATIONS (for hero shapes)
+───────────────────────────────────────────── */
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-18px) rotate(3deg); }
+  66%       { transform: translateY(-8px) rotate(-2deg); }
+}
+@keyframes floatBobSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-12px) rotate(-4deg); }
+}
+.animate-float-bob      { animation: floatBob 6s ease-in-out infinite; }
+.animate-float-bob-slow { animation: floatBobSlow 9s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────────
+   BUTTON RIPPLE EFFECT
+───────────────────────────────────────────── */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+.btn-ripple:active::after {
+  opacity: 1;
+}
+
+/* ─────────────────────────────────────────────
+   NOTICE BADGE URGENT PULSE
+───────────────────────────────────────────── */
+@keyframes urgentBadgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+.urgent-badge {
+  animation: urgentBadgePulse 2s infinite;
+}
+
+/* ─────────────────────────────────────────────
+   STATS CARD GLOW
+───────────────────────────────────────────── */
+.stat-glow {
+  position: relative;
+}
+.stat-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #B8860B22, #FFD70011, transparent);
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────
+   TABLE ROW HOVER
+───────────────────────────────────────────── */
+.table-row-hover {
+  transition: background-color 0.15s ease;
+}
+.table-row-hover:hover {
+  background-color: rgba(255,255,255,0.04);
+}

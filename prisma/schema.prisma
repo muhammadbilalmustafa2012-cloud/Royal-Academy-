@@ -1,0 +1,125 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Course {
+  id               String       @id
+  title            String
+  category         String       // e.g. Matric, Intermediate, etc.
+  shortDescription String
+  fullDescription  String
+  duration         String
+  fee              Float
+  feePeriod        String       // e.g. "per month"
+  image            String
+  features         String[]
+  schedule         String
+  instructor       String
+  appliesCount     Int          @default(0)
+  featured         Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+}
+
+model Teacher {
+  id            String   @id
+  name          String
+  role          String
+  qualification String
+  experience    String
+  subject       String
+  photo         String
+  bio           String
+  email         String
+  phone         String
+  featured      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}
+
+model Admission {
+  id                 String   @id
+  studentName        String
+  fatherName         String
+  email              String
+  phone              String
+  gender             String
+  dateOfBirth        String
+  address            String
+  courseId           String
+  courseName         String
+  previousEducation  String
+  cnicBForm          String
+  guardianPhone      String
+  status             String   @default("Pending") // e.g. Pending, Under Review, Approved, Rejected
+  createdAt          DateTime @default(now())
+  adminNotes         String   @default("")
+  googleSheetsSynced Boolean  @default(false)
+
+  @@index([studentName])
+  @@index([phone])
+  @@index([createdAt])
+}
+
+model Contact {
+  id        String   @id
+  name      String
+  email     String
+  phone     String
+  subject   String
+  message   String
+  date      DateTime @default(now())
+  status    String   @default("Unread") // e.g. Unread, Read, Replied
+}
+
+model GalleryItem {
+  id          String   @id
+  title       String
+  category    String   // e.g. Classroom, Events, etc.
+  image       String
+  date        String
+  description String
+}
+
+model Notice {
+  id        String   @id
+  title     String
+  category  String   // e.g. Academic, Exam, etc.
+  content   String
+  date      String
+  urgent    Boolean  @default(false)
+}
+
+model StudentResult {
+  id            String   @id
+  rollNumber    String   @unique
+  studentName   String
+  fatherName    String
+  className     String
+  examName      String
+  marksObtained Float
+  totalMarks    Float
+  percentage    Float
+  grade         String
+  status        String   @default("Pass")
+}
+
+model AdminUser {
+  id           String   @id
+  username     String   @unique
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String
+  createdAt    DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id
+  action    String
+  details   String
+  ip        String?
+  timestamp DateTime @default(now())
+}
