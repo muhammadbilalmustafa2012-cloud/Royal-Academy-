@@ -208,6 +208,20 @@ class Database {
     }
   }
 
+  async checkDuplicateAdmission(phone: string, courseName: string) {
+    const list = await this.getAdmissions();
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return list.find((a: any) => {
+      const t = new Date(a.createdAt || a.submissionTime || 0).getTime();
+      return a.phone === phone && a.courseName === courseName && t > cutoff;
+    }) || null;
+  }
+
+  async getGallery() {
+    if (!this.pg) return jdb().gallery;
+    return jdb().gallery;
+  }
+
   async createAdmission(input: any) {
     const id = `APP-2026-${Math.floor(100 + Math.random() * 900)}`;
     const targetCourse = input.courseName || input.class || "Matric / Intermediate";
@@ -558,7 +572,8 @@ class Database {
   }
 
   // ── CSV Export ─────────────────────────────────────────────────────────────
-  exportAdmissionsCSV(list: any[]): string {
+  async exportAdmissionsCSV(input?: any): Promise<string> {
+    const list = Array.isArray(input) ? input : await this.getAdmissions(input);
     const headers = ["Application ID","Student Name","Father Name","Phone","Guardian Phone","Email","Course / Class","Gender","Date of Birth","B-Form / CNIC","Previous Qualification","Address","Additional Notes","Status","Submission Time"];
     const esc = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = list.map(a => [

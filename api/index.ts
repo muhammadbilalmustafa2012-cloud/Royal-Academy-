@@ -112,27 +112,27 @@ app.get("/api/health", (_req, res) => {
 });
 
 // System Stats
-app.get("/api/stats", (_req, res) => {
-  const admissions = db.getAdmissions();
-  const courses = db.getCourses();
-  const teachers = db.getTeachers();
-  const messages = db.getMessages();
+app.get("/api/stats", async (_req, res) => {
+  const admissions = await db.getAdmissions();
+  const courses = await db.getCourses();
+  const teachers = await db.getTeachers();
+  const messages = await db.getMessages();
 
   res.json({
-    totalStudents: 850 + admissions.filter((a) => a.status === "Approved").length,
+    totalStudents: 850 + admissions.filter((a: any) => a.status === "Approved").length,
     totalCourses: courses.length,
-    pendingAdmissions: admissions.filter((a) => a.status === "Pending").length,
-    approvedAdmissions: admissions.filter((a) => a.status === "Approved").length,
+    pendingAdmissions: admissions.filter((a: any) => a.status === "Pending").length,
+    approvedAdmissions: admissions.filter((a: any) => a.status === "Approved").length,
     totalTeachers: teachers.length,
-    unreadMessages: messages.filter((m) => m.status === "Unread").length,
+    unreadMessages: messages.filter((m: any) => m.status === "Unread").length,
     totalApplications: admissions.length
   });
 });
 
 // 1. ADMISSIONS API
-app.get("/api/admissions", (req, res) => {
+app.get("/api/admissions", async (req, res) => {
   const { search, class: classFilter, status, startDate, endDate } = req.query;
-  const admissions = db.getAdmissions({
+  const admissions = await db.getAdmissions({
     search: search as string,
     classFilter: classFilter as string,
     status: status as string,
@@ -142,15 +142,15 @@ app.get("/api/admissions", (req, res) => {
   res.json(admissions);
 });
 
-app.get("/api/admissions/export/csv", (_req, res) => {
-  const csvData = db.exportAdmissionsCSV();
+app.get("/api/admissions/export/csv", async (_req, res) => {
+  const csvData = await db.exportAdmissionsCSV({});
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", 'attachment; filename="royal_academy_admissions.csv"');
   res.send(csvData);
 });
 
-app.get("/api/admissions/status/:query", (req, res) => {
-  const match = db.getAdmissionById(req.params.query);
+app.get("/api/admissions/status/:query", async (req, res) => {
+  const match = await db.getAdmissionById(req.params.query);
   if (!match) {
     return res.status(404).json({ error: "No admission application found matching this ID, Phone, or CNIC." });
   }

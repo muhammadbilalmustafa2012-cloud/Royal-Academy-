@@ -51,10 +51,13 @@ export interface AdmissionApplication {
   courseId: string;
   courseName: string;
   previousEducation: string;
+  previousSchool?: string;
   cnicBForm: string;
   guardianPhone: string;
   status: AdmissionStatus;
   createdAt: string;
+  submissionTime?: string;
+  additionalNotes?: string;
   adminNotes?: string;
 }
 
@@ -67,8 +70,9 @@ export interface ContactMessage {
   phone: string;
   subject: string;
   message: string;
+  status: 'Unread' | 'Replied' | 'Archived';
   date: string;
-  status: MessageStatus;
+  createdAt?: string;
 }
 
 export type GalleryCategory = 'Classroom' | 'Events' | 'Activities' | 'Achievements';

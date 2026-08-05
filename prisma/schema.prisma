@@ -55,6 +55,7 @@ model Admission {
   guardianPhone      String
   status             String   @default("Pending") // e.g. Pending, Under Review, Approved, Rejected
   createdAt          DateTime @default(now())
+  additionalNotes    String   @default("")
   adminNotes         String   @default("")
   googleSheetsSynced Boolean  @default(false)
 

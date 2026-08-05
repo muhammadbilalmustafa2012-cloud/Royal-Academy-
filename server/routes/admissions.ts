@@ -21,16 +21,16 @@ router.get("/", (req, res) => {
 });
 
 /** GET /api/admissions/export/csv — Export admissions as CSV */
-router.get("/export/csv", (req, res) => {
-  const csvData = db.exportAdmissionsCSV();
+router.get("/export/csv", async (req, res) => {
+  const csvData = await db.exportAdmissionsCSV({});
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", 'attachment; filename="royal_academy_admissions.csv"');
   res.send(csvData);
 });
 
 /** GET /api/admissions/status/:query — Lookup admission by ID/Phone/CNIC */
-router.get("/status/:query", (req, res) => {
-  const match = db.getAdmissionById(req.params.query);
+router.get("/status/:query", async (req, res) => {
+  const match = await db.getAdmissionById(req.params.query);
   if (!match) {
     return res.status(404).json({ error: "No admission application found matching this ID, Phone, or CNIC." });
   }
@@ -57,7 +57,7 @@ router.post(
     }
 
     // Duplicate detection: same phone + course within 24 hours
-    const recentDuplicate = db.checkDuplicateAdmission(phone, targetCourse);
+    const recentDuplicate = await db.checkDuplicateAdmission(phone, targetCourse);
     if (recentDuplicate) {
       return res.status(409).json({
         error: "A duplicate application was detected. You have already submitted an admission for this course within the last 24 hours.",
@@ -65,7 +65,7 @@ router.post(
       });
     }
 
-    const newApp = db.createAdmission({
+    const newApp = await db.createAdmission({
       ...req.body,
       courseName: targetCourse
     });

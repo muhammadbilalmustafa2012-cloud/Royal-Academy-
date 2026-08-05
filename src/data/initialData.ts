@@ -341,7 +341,7 @@ export const INITIAL_CONTACT_MESSAGES: ContactMessage[] = [
     subject: 'MDCAT Entry Test Batch Timing',
     message: 'Hello, please let me know when the new MDCAT crash course batch starts after F.Sc board exams?',
     date: '2026-07-25T16:00:00Z',
-    status: 'Read'
+    status: 'Replied'
   }
 ];
 
