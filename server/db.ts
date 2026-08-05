@@ -97,7 +97,7 @@ function loadJson(): JsonDb {
         username: "ayeshawadood02",
         name: "Miss Ayesha Wadood (Principal / Admin)",
         email: "ayeshawadood02@gmail.com",
-        passwordHash: bcrypt.hashSync("ayesha@08", salt),
+        passwordHash: bcrypt.hashSync("ayeshafahad08", salt),
         role: "Super Admin"
       },
       {
