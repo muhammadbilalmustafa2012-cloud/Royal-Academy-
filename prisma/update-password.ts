@@ -20,7 +20,7 @@ async function updatePassword() {
   const prisma = new PrismaClient({ adapter } as any);
 
   const email = "ayeshawadood02@gmail.com";
-  const newPassword = "ayeshafahad08";
+  const newPassword = "ayesha@08";
   const hash = await bcrypt.hash(newPassword, 12);
 
   const updated = await prisma.adminUser.update({

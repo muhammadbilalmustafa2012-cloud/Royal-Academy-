@@ -139,7 +139,7 @@ async function seed() {
         username: "ayeshawadood02",
         name: "Miss Ayesha Wadood (Principal / Admin)",
         email: "ayeshawadood02@gmail.com",
-        passwordHash: bcrypt.hashSync("ayeshafahad08", salt),
+        passwordHash: bcrypt.hashSync("ayesha@08", salt),
         role: "Super Admin"
       }
     });
