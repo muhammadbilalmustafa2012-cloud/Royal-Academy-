@@ -244,6 +244,16 @@ app.delete("/api/courses/:id", (req, res) => {
   res.json({ success: true });
 });
 
+// 3.5 GALLERY API
+app.get("/api/gallery", async (_req, res) => {
+  try {
+    const gallery = await db.getGallery();
+    res.json(gallery);
+  } catch (error) {
+    console.error("[API /gallery]", error);
+    res.status(500).json({ error: "Failed to load gallery" });
+  }
+});
 // 4. TEACHERS API
 app.get("/api/teachers", (_req, res) => {
   res.json(db.getTeachers());
