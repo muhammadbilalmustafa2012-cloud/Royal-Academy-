@@ -218,9 +218,19 @@ class Database {
   }
 
   async getGallery() {
-    if (!this.pg) return jdb().gallery;
-    return jdb().gallery;
+  if (!this.pg) return jdb().gallery;
+
+  try {
+    const rows = await (this.pg as PrismaClient).galleryItem.findMany({
+      orderBy: { date: "desc" }
+    });
+
+    return rows;
+  } catch (e) {
+    console.error("[DB.getGallery]", e);
+    return [];
   }
+}
 
   async createAdmission(input: any) {
     const id = `APP-2026-${Math.floor(100 + Math.random() * 900)}`;
