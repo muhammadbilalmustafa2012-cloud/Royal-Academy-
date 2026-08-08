@@ -198,8 +198,8 @@ app.delete("/api/admissions/:id", (req, res) => {
 });
 
 // 2. CONTACT MESSAGES API
-app.get("/api/messages", (_req, res) => {
-  res.json(db.getMessages());
+app.get("/api/messages", async (_req, res) => {
+  res.json(await db.getMessages());
 });
 
 app.post("/api/messages", (req, res) => {
@@ -224,8 +224,8 @@ app.delete("/api/messages/:id", (req, res) => {
 });
 
 // 3. COURSES API
-app.get("/api/courses", (_req, res) => {
-  res.json(db.getCourses());
+app.get("/api/courses", async (_req, res) => {
+  res.json(await db.getCourses());
 });
 
 app.post("/api/courses", (req, res) => {
@@ -255,8 +255,8 @@ app.get("/api/gallery", async (_req, res) => {
   }
 });
 // 4. TEACHERS API
-app.get("/api/teachers", (_req, res) => {
-  res.json(db.getTeachers());
+app.get("/api/teachers", async (_req, res) => {
+  res.json(await db.getTeachers());
 });
 
 app.post("/api/teachers", (req, res) => {
@@ -265,8 +265,8 @@ app.post("/api/teachers", (req, res) => {
 });
 
 // 5. NOTICES API
-app.get("/api/notices", (_req, res) => {
-  res.json(db.getNotices());
+app.get("/api/notices", async (_req, res) => {
+  res.json(await db.getNotices());
 });
 
 app.post("/api/notices", (req, res) => {
@@ -280,9 +280,9 @@ app.delete("/api/notices/:id", (req, res) => {
 });
 
 // 6. BOARD RESULTS API
-app.get("/api/results", (req, res) => {
+app.get("/api/results", async (req, res) => {
   const query = (req.query.q as string) || "";
-  res.json(db.getResults(query));
+  res.json(await db.getResults(query));
 });
 
 app.post("/api/results", (req, res) => {
