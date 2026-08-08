@@ -13,8 +13,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "royal_academy_secret_key_2026_fais
 const PORT = Number(process.env.PORT) || 3000;
 const PRIMARY_DOMAIN = "https://www.royalacademy.pk";
 
+const app = express();
+
 async function startServer() {
-  const app = express();
 
   // Security Middlewares
   app.use(
@@ -530,19 +531,23 @@ Official Details for Royal Academy:
 
   // Serve static files or Vite dev middleware
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa"
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
+  const vite = await createViteServer({
+    server: { middlewareMode: true },
+    appType: "spa"
+  });
 
+  app.use(vite.middlewares);
+} else if (!process.env.VERCEL) {
+  const distPath = path.join(process.cwd(), "dist");
+
+  app.use(express.static(distPath));
+
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
+  if (!process.env.VERCEL) {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[Royal Academy Server] Running on http://0.0.0.0:${PORT}`);
     console.log(`[Domain] Configured for ${PRIMARY_DOMAIN}`);
