@@ -548,12 +548,14 @@ Official Details for Royal Academy:
 }
 
   if (!process.env.VERCEL) {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Royal Academy Server] Running on http://0.0.0.0:${PORT}`);
-    console.log(`[Domain] Configured for ${PRIMARY_DOMAIN}`);
-  });
-}
-  
-} //   
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`[Royal Academy Server] Running on http://0.0.0.0:${PORT}`);
+      console.log(`[Domain] Configured for ${PRIMARY_DOMAIN}`);
+    });
+  }
 
-startServer();
+  return app;
+}
+
+const readyApp = await startServer();
+export default readyApp;                                                                                                                                                         
