@@ -224,7 +224,9 @@ async getGallery() {
 
   try {
     const rows = await (this.pg as PrismaClient).galleryItem.findMany({
-      orderBy: { date: "desc" }
+      orderBy: {
+        date: "desc"
+      }
     });
 
     return rows;
