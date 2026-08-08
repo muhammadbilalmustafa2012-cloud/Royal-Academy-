@@ -217,8 +217,10 @@ class Database {
     }) || null;
   }
 
-  async getGallery() {
-  if (!this.pg) return jdb().gallery;
+async getGallery() {
+  if (!this.pg) {
+    return jdb().gallery;
+  }
 
   try {
     const rows = await (this.pg as PrismaClient).galleryItem.findMany({
